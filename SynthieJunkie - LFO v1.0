@@ -1,0 +1,258 @@
+// Reaper JSFX: LFO
+// (c) 2025 by SynthieJunkie
+// MIT License
+
+desc:SynthieJunkie - LFO v1.0
+desc:LFO v1.0
+
+
+
+slider1:SliderWave1=0<0,6,1{Sine,Parabol,Triangle,Sawtooth,Square,NoiseA,NoiseD}>Wave 1
+slider2:SliderWave2=0<0,6,1{Sine,Parabol,Triangle,Sawtooth,Square,NoiseA,NoiseD}>Wave 2
+slider3:SliderWave3=0<0,6,1{Sine,Parabol,Triangle,Sawtooth,Square,NoiseA,NoiseD}>Wave 3
+
+slider5:SliderPulsewidth1=0<-1,1,0.01>Pulsewidth 1
+slider6:SliderPulsewidth2=0<-1,1,0.01>Pulsewidth 2
+slider7:SliderPulsewidth3=0<-1,1,0.01>Pulsewidth 3
+
+slider9:SliderRatio1=0<-6,6,1>Ratio 1
+slider10:SliderRatio2=0<-6,6,1>Ratio 2
+slider11:SliderRatio3=0<-6,6,1>Ratio 3
+slider12:SliderSync=-6<-6,6,1>Sync
+
+slider14:SliderPhase1=0<-1,1,0.01>Phase 1
+slider15:SliderPhase2=0<-1,1,0.01>Phase 2
+slider16:SliderPhase3=0<-1,1,0.01>Phase 3
+
+slider18:SliderAmplitude1=0<-1,1,0.01>Amplitude 1
+slider19:SliderAmplitude2=0<-1,1,0.01>Amplitude 2
+slider20:SliderAmplitude3=0<-1,1,0.01>Amplitude 3
+
+slider22:SliderOffset1=0<-1,1,0.01>Offset 1
+slider23:SliderOffset2=0<-1,1,0.01>Offset 2
+slider24:SliderOffset3=0<-1,1,0.01>Offset 3
+
+slider26:SliderAbsolute=0<0,1,1{No,Yes}>Absolute
+slider27:SliderMix=0<0,1,0.01>Mix
+
+slider29:SliderMix12=0<0,6,1{ADD,SUB,MUL,DIV,AND,OR,XOR}>1 >> 2
+slider30:SliderMix23=0<0,6,1{ADD,SUB,MUL,DIV,AND,OR,XOR}>2 >> 3
+
+slider32:SliderOut1=0<-1,1,0.01>Out 1
+slider33:SliderOut2=0<-1,1,0.01>Out 2
+slider34:SliderOut3=0<-1,1,0.01>Out 3
+slider35:SliderOut=0<-1,1,0.01>Out
+
+
+
+@init
+function AddPhase(Phase, Amount)
+(
+  Phase += Amount;
+  Phase <= -0.5 ? Phase += 1;
+  Phase >= 0.5 ? Phase -= 1;
+  Phase;
+);
+function Phase2Wave(Phase, Wave, Pulsewidth)
+(
+  Result = 0;
+  Wave == 0 ? Result = sin(4 * $pi * Phase);
+  Wave == 1 ? Result = 4 * (0.5 - abs(Phase)) * 16;
+  Wave == 2 ? Result = 1 - (4 * abs(Phase));
+  Wave == 3 ? Result = Phase * 2;
+  Wave == 4 ? Phase + Pulsewidth >= 0 ? Result = 1 : Result = Absolute == 1 ? 0 : -1;
+  Wave == 5 ? Result = rand() * 2 - 1;
+  Wave == 6 ? Result = sign(rand() * 2 - 1);
+  Result;
+);
+function Update()
+(
+  Wave1 = SliderWave1;
+  Wave2 = SliderWave2;
+  Wave3 = SliderWave3;
+
+  Pulsewidth1 = SliderPulsewidth1 / 2;
+  Pulsewidth2 = SliderPulsewidth2 / 2;
+  Pulsewidth3 = SliderPulsewidth3 / 2;
+
+  Ratio1 = SliderRatio1;
+  Ratio2 = SliderRatio2;
+  Ratio3 = SliderRatio3;
+  Sync = pow(2, SliderSync);
+
+  Phase1 = SliderPhase1 / 2;
+  Phase2 = SliderPhase2 / 2;
+  Phase3 = SliderPhase3 / 2;
+
+  Amplitude1 = SliderAmplitude1;
+  Amplitude2 = SliderAmplitude2;
+  Amplitude3 = SliderAmplitude3;
+
+  Offset1 = SliderOffset1;
+  Offset2 = SliderOffset2;
+  Offset3 = SliderOffset3;
+
+  Absolute = SliderAbsolute;
+  Mix = SliderMix;
+
+  Mix12 = SliderMix12;
+  Mix23 = SliderMix23;
+
+  Wave1 == 1 ? Phase1 = AddPhase(Phase1, -0.25);
+  Wave2 == 1 ? Phase2 = AddPhase(Phase2, -0.25);
+  Wave3 == 1 ? Phase3 = AddPhase(Phase3, -0.25);
+
+  Frequency1 = tempo * pow(2, Ratio1) / 60;
+  Frequency2 = tempo * pow(2, Ratio2) / 60;
+  Frequency3 = tempo * pow(2, Ratio3) / 60;
+
+  FrequencyFactor1 = Frequency1 / srate;
+  FrequencyFactor2 = Frequency2 / srate;
+  FrequencyFactor3 = Frequency3 / srate;
+);
+function FloatAnd(A, B)
+(
+  A *= 2147483647;
+  B *= 2147483647;
+  C = A & B;
+  C /= 2147483647;
+  sign(A) != sign(B) ? C = -C;
+  C;
+);
+function FloatOr(A, B)
+(
+  A *= 2147483647;
+  B *= 2147483647;
+  C = A | B;
+  C /= 2147483647;
+  sign(A) != sign(B) ? C = -C;
+  C;
+);
+function FloatXor(A, B)
+(
+  A *= 2147483647;
+  B *= 2147483647;
+  C = A ~ B;
+  C /= 2147483647;
+  sign(A) != sign(B) ? C = -C;
+  C;
+);
+
+LastBeat = 0;
+CurrentBeat = -1;
+DoUpdate = 1;
+
+
+@slider
+Update();
+
+
+
+@sample
+LastState = CurrentState;
+CurrentState = play_state;
+
+//First Init
+CurrentState != LastState ? ( Update(); );
+
+//On Play Or Record
+CurrentState == 1 || CurrentState == 5 ?
+(
+  //Init Phase
+  LastState == 0 ?
+  (
+    Phase1 = SliderPhase1;
+    Phase2 = SliderPhase2;
+    Phase3 = SliderPhase3;
+
+    Wave1 == 1 ? AddPhase(Phase1, -0.25);
+    Wave2 == 1 ? AddPhase(Phase2, -0.25);
+    Wave3 == 1 ? AddPhase(Phase3, -0.25);
+  );
+
+  LastBeat = CurrentBeat;
+  CurrentBeat = (beat_position * Sync) | 0;
+
+  //Sync Phase
+  CurrentBeat != LastBeat ?
+  (
+    Phase1 = SliderPhase1;
+    Phase2 = SliderPhase2;
+    Phase3 = SliderPhase3;
+
+    Wave1 == 1 ? AddPhase(Phase1, -0.25);
+    Wave2 == 1 ? AddPhase(Phase2, -0.25);
+    Wave3 == 1 ? AddPhase(Phase3, -0.25);
+  );
+
+  //Generate Output's
+  Out1 = Phase2Wave(Phase1, Wave1, Pulsewidth1);
+  Out2 = Phase2Wave(Phase2, Wave2, Pulsewidth2);
+  Out3 = Phase2Wave(Phase3, Wave3, Pulsewidth3);
+
+  Out1 *= Amplitude1;
+  Out2 *= Amplitude2;
+  Out3 *= Amplitude3;
+
+  Out1 += Offset1;
+  Out2 += Offset2;
+  Out3 += Offset3;
+
+  Out1 = min(max(Out1, -1), 1);
+  Out2 = min(max(Out2, -1), 1);
+  Out3 = min(max(Out3, -1), 1);
+
+  Out = Out1;
+
+  //Combine Output Values
+  SliderMix12 == 0 ? Out += Out2;
+  SliderMix12 == 1 ? Out -= Out2;
+  SliderMix12 == 2 ? Out *= Out2;
+  SliderMix12 == 3 ? Out /= Out2;
+  SliderMix12 == 4 ? Out = FloatAnd(Out, Out2);
+  SliderMix12 == 5 ? Out = FloatOr(Out, Out2);
+  SliderMix12 == 6 ? Out = FloatXor(Out, Out2);
+
+  SliderMix23 == 0 ? Out += Out3;
+  SliderMix23 == 1 ? Out -= Out3;
+  SliderMix23 == 2 ? Out *= Out3;
+  SliderMix23 == 3 ? Out /= Out3;
+  SliderMix23 == 4 ? Out = FloatAnd(Out, Out3);
+  SliderMix23 == 5 ? Out = FloatOr(Out, Out3);
+  SliderMix23 == 6 ? Out = FloatXor(Out, Out3);
+
+  Out = min(max(Out, -1), 1);
+
+  //Make Absolute
+  Absolute == 1 ?
+  (
+    Out1 = abs(Out1);
+    Out2 = abs(Out2);
+    Out3 = abs(Out3);
+    Out = abs(Out);
+  );
+
+  //Set Slider Values
+  SliderOut1 = Out1;
+  SliderOut2 = Out2;
+  SliderOut3 = Out3;
+  SliderOut = Out;
+
+  //Automate Sliders
+  slider_automate(SliderOut1);
+  slider_automate(SliderOut2);
+  slider_automate(SliderOut3);
+  slider_automate(SliderOut);
+
+  //Set Output
+  spl0 = spl0 * (1 - Mix) + spl0 * Out * Mix;
+  spl1 = spl1 * (1 - Mix) + spl1 * Out * Mix;
+
+
+
+  //Update Phases
+  Phase1 = AddPhase(Phase1, FrequencyFactor1);
+  Phase2 = AddPhase(Phase2, FrequencyFactor2);
+  Phase3 = AddPhase(Phase3, FrequencyFactor3);
+);
+
